@@ -55,63 +55,84 @@ public class SynthNote extends Thread {
 	public void run() {
 		 
 		this.osc.setFreq(this.frequency);
-		
 		this.noteState = NOTE_PRESSED;
 		
 		while (this.currentTime <= this.attackTime) {
-			
-			this.currentAmplitude = (this.currentTime) /
-					(this.attackTime / this.maxAmplitude);
-			
-			this.incrementTime();
-			
-			osc.setAmplitude(this.currentAmplitude);
-			this.buffer.add(osc.createWave(this.currentTime));
-			
-			//System.out.println(this.currentTime + " " + this.currentAmplitude);
-
+			attackEnv();
 		}
-		
-		double m;
-		double c;
-		
+	
+		double m = (this.sustainAmplitude - this.maxAmplitude) / this.decayTime;
+		double c = (-m * this.attackTime) + (this.maxAmplitude);
 		
 		while (this.currentTime <= this.attackTime + this.decayTime) {
-			
-			
-			m = (this.sustainAmplitude - this.maxAmplitude) / this.decayTime;
-			c = (-m * this.attackTime) + (this.maxAmplitude);
-			this.currentAmplitude = (m * this.currentTime) + c;	
-			
-			this.incrementTime();
-			
-			osc.setAmplitude(this.currentAmplitude);
-			this.buffer.add(osc.createWave(this.currentTime));
-			
-			//System.out.println(this.currentTime + " " + this.currentAmplitude);
-			
-			
+			decayEnv(m, c);
 		}
-		
 		
 		while (this.noteState == NOTE_PRESSED) {
-			
-			this.currentAmplitude = this.sustainAmplitude;
-			this.incrementTime();
-			
-			osc.setAmplitude(this.currentAmplitude);
-			this.buffer.add(osc.createWave(this.currentTime));
-			
-			//System.out.println(this.currentTime + " " + this.currentAmplitude + " " + osc.createWave(this.currentTime));			
-			
+			sustainEnv();
 		}
 		
-		this.releaseTime += this.currentTime;
-		while (this.currentTime <= this.releaseTime) {
-			
+		double sustainEnd = this.currentTime;	
+		double releaseEnd = this.currentTime + this.releaseTime;
+		m = -this.sustainAmplitude / this.releaseTime;
+		c = -m * (sustainEnd + this.releaseTime);
+		
+		while (this.currentTime <= releaseEnd) {
+			releaseEnv(m, c);
 		}
+		
+		this.buffer.drain();
 		
 	}
+	
+	
+	private void attackEnv() {
+		
+		this.currentAmplitude = (this.currentTime) /
+				(this.attackTime / this.maxAmplitude);
+		
+		this.incrementTime();
+		
+		osc.setAmplitude(this.currentAmplitude);
+		this.buffer.add(osc.createWave(this.currentTime));
+		
+	}
+	
+	private void decayEnv(double m, double c) {
+		
+		this.currentAmplitude = (m * this.currentTime) + c;	
+		
+		this.incrementTime();
+		
+		osc.setAmplitude(this.currentAmplitude);
+		this.buffer.add(osc.createWave(this.currentTime));
+		
+	}
+	
+	private void sustainEnv() {
+				
+		this.currentAmplitude = this.sustainAmplitude;
+		this.incrementTime();
+		
+		osc.setAmplitude(this.currentAmplitude);
+		this.buffer.add(osc.createWave(this.currentTime));
+		
+	}
+	
+	private void releaseEnv(double m, double c) {
+		
+		this.currentAmplitude = (m * this.currentTime) + c;
+		
+		this.incrementTime();
+		osc.setAmplitude(this.currentAmplitude);
+		this.buffer.add(osc.createWave(this.currentTime));
+		
+	}
+	
+	private void incrementTime() {
+		this.currentTime += 1;
+	}
+	
 	
 	public void release() {
 		this.noteState = NOTE_RELEASED;
@@ -124,9 +145,7 @@ public class SynthNote extends Thread {
 		this.releaseTime = 0;
 	}
 	
-	private void incrementTime() {
-		this.currentTime += 1;
-	}
+
 	
 	private class Buffer {
 		
@@ -155,11 +174,16 @@ public class SynthNote extends Thread {
 			this.buffer = new byte[size];
 			this.itemCount = 0;
 		}
+		
+		void drain() {
+			this.listener.onDrain(this.buffer.clone());
+		}
 				
 	}
 	
 	public interface OnBufferFullListener {
 		void onFull(byte[] buffer);
+		void onDrain(byte[] buffer);
 	}
 	
 }
