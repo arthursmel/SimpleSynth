@@ -3,9 +3,9 @@ class Oscillator {
 
 	protected final double DEFAULT_SINE_CONSTANT = 2.0;
 	
-	protected int 	sampleRate;
-	protected double 	freq;
-	protected double 	amplitude;
+	protected int sampleRate;
+	protected double freq;
+	protected double amplitude;
 	
 	
 	protected Oscillator (int sampleRate) {
@@ -44,5 +44,9 @@ class Oscillator {
 		this.amplitude = amplitude;
 	}
 
+	
+	public double getAmplitude() {
+		return this.amplitude;
+	}
 	
 }

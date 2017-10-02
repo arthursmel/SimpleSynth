@@ -10,7 +10,8 @@ public class SynthNote extends Thread {
 	private double frequency;
 	
 	private int sampleRate;
-	private final static int DEFAULT_SAMPLE_RATE = 44100;
+	private static final int DEFAULT_SAMPLE_RATE = 44100;
+	private static final int DEFUALT_BUFFER_SIZE = 2;
 	
 	private double sustainAmplitude;
 	private double maxAmplitude;
@@ -23,6 +24,7 @@ public class SynthNote extends Thread {
 	
 	private final int NOTE_PRESSED = 0;
 	private final int NOTE_RELEASED = 1;
+	private final int NOTE_CANCELLED = 2;
 	private int noteState;
 	
 	public SynthNote(
@@ -39,14 +41,14 @@ public class SynthNote extends Thread {
 			double a, double d, double s, double r,
 			OnBufferFullListener listener) {
 		
-		this.buffer = new Buffer(sampleRate, listener);
+		this.buffer = new Buffer(DEFUALT_BUFFER_SIZE, listener);
 		this.osc = osc;
 		
 		this.maxAmplitude = maxAmplitude;
 		this.frequency = freq;
 		this.attackTime = a * sampleRate;
 		this.decayTime = d * sampleRate;
-		this.sustainAmplitude = s;
+		this.sustainAmplitude = s * (maxAmplitude / 100.0);
 		this.releaseTime = r * sampleRate;
 		this.sampleRate = sampleRate;
 	}
@@ -57,14 +59,16 @@ public class SynthNote extends Thread {
 		this.osc.setFreq(this.frequency);
 		this.noteState = NOTE_PRESSED;
 		
-		while (this.currentTime <= this.attackTime) {
+		while (this.currentTime <= this.attackTime && 
+				this.noteState == NOTE_PRESSED) {
 			attackEnv();
 		}
 	
 		double m = (this.sustainAmplitude - this.maxAmplitude) / this.decayTime;
 		double c = (-m * this.attackTime) + (this.maxAmplitude);
 		
-		while (this.currentTime <= this.attackTime + this.decayTime) {
+		while (this.currentTime <= this.attackTime + this.decayTime && 
+				this.noteState == NOTE_PRESSED) {
 			decayEnv(m, c);
 		}
 		
@@ -74,10 +78,10 @@ public class SynthNote extends Thread {
 		
 		double sustainEnd = this.currentTime;	
 		double releaseEnd = this.currentTime + this.releaseTime;
-		m = -this.sustainAmplitude / this.releaseTime;
+		m = -this.currentAmplitude / this.releaseTime;
 		c = -m * (sustainEnd + this.releaseTime);
 		
-		while (this.currentTime <= releaseEnd) {
+		while (this.currentTime <= releaseEnd && this.noteState != NOTE_CANCELLED) {
 			releaseEnv(m, c);
 		}
 		
@@ -139,10 +143,7 @@ public class SynthNote extends Thread {
 	}
 		
 	public void cancel() {
-		this.attackTime = 0;
-		this.decayTime = 0;
-		this.maxAmplitude = 0;
-		this.releaseTime = 0;
+		this.noteState = NOTE_CANCELLED;
 	}
 	
 
