@@ -1,21 +1,14 @@
 import java.awt.BorderLayout;
 import java.awt.Choice;
-import java.awt.Color;
 import java.awt.Dimension;
-import java.awt.FlowLayout;
 import java.awt.GridLayout;
 import java.awt.Scrollbar;
-import java.awt.event.ActionEvent;
-import java.awt.event.ActionListener;
 import java.awt.event.AdjustmentEvent;
 import java.awt.event.AdjustmentListener;
 import java.awt.event.ItemEvent;
 import java.awt.event.ItemListener;
 import java.awt.event.MouseEvent;
 import java.awt.event.MouseListener;
-import java.awt.event.WindowAdapter;
-import java.awt.event.WindowEvent;
-import java.util.Scanner;
 
 import javax.sound.sampled.AudioFormat;
 import javax.sound.sampled.AudioSystem;
@@ -23,13 +16,12 @@ import javax.sound.sampled.LineUnavailableException;
 import javax.sound.sampled.SourceDataLine;
 import javax.swing.JButton;
 import javax.swing.JFrame;
-import javax.swing.JLabel;
 import javax.swing.JPanel;
 
 public class SimpleSynth {
 
 	private static final int SAMPLE_RATE = 44100;
-	private static final int KEY_COUNT = 5;
+	private static final double DEFAULT_MAX_AMPLITUDE = 50;
 	private static final int DEFAULT_OCTAVE = 0;
 	private static final int OCTAVE_COUNT = 10;
 	
@@ -149,9 +141,9 @@ public class SimpleSynth {
 	
 	
 	public static double calculateNewParamValue(EnvelopeParameter param, int newValue) {
-		return param.maxValue()
+		return param.getMaxValue()
 		- (((double) newValue / (double) SCROLL_BAR_MAX)
-		* param.maxValue());	
+		* param.getMaxValue());	
 	}
 	
 	
@@ -295,7 +287,7 @@ public class SimpleSynth {
 		frame.setLayout(new GridLayout(ROW_COUNT, COLUMN_COUNT, 1, 1));
 		
 		keysPanel = new JPanel();
-		keysPanel.setLayout(new GridLayout(1, KEY_COUNT, 1, 1));
+		keysPanel.setLayout(new GridLayout(1, 1, 1, 1));
 		
 		oscPanel = new JPanel();
 		oscPanel.setLayout(new GridLayout(1, 3, 1, 1));
@@ -330,7 +322,7 @@ public class SimpleSynth {
 		this.s = calculateNewParamValue(EnvelopeParameter.SUSTAIN, SCROLL_BAR_MAX - 1);
 		this.r = calculateNewParamValue(EnvelopeParameter.RELEASE, SCROLL_BAR_MAX - 1);
 		
-		this.maxAmplitude = 100;
+		this.maxAmplitude = DEFAULT_MAX_AMPLITUDE;
 		this.currentOctave = DEFAULT_OCTAVE;
 		
 		this.osc = new AdditiveOscillator(SAMPLE_RATE);
@@ -351,10 +343,9 @@ public class SimpleSynth {
 			AudioFormat af = new AudioFormat(SAMPLE_RATE, 16, 1, true, true);
 			final SourceDataLine line = AudioSystem.getSourceDataLine(af);
 	
-			SimpleSynth synth = new SimpleSynth(line, af);		
+			SimpleSynth synth = new SimpleSynth(line, af);	
 			
 		} catch (LineUnavailableException e) {
-			// TODO Auto-generated catch block
 			e.printStackTrace();
 		}
 
