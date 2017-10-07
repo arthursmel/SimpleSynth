@@ -224,45 +224,71 @@ public class SynthNote extends Thread {
 	
 
 	/**
-	Private buffer class used to output bytes to the line
+	A simple private buffer class used to output bytes to the line.
 	**/
 	private class Buffer {
 		
-		int size;
-		int itemCount = 0;
-		byte[] buffer;
+		int size; // Max number of items in the buffer
+		int itemCount; // Current number of bytes in the buffer
+		byte[] buffer; // Buffer byte array
 		OnBufferFullListener listener;
 		
+		/**
+		Constructor for the byte buffer
+		@param size Max number of bytes in the buffer
+		@param listener 
+		**/
 		Buffer(int size, OnBufferFullListener listener) {
+			this.itemCount = 0;
 			this.size = size;
 			this.listener = listener;
-			this.buffer = new byte[size];
+			this.buffer = new byte[size]; // Initiallising buffer array
 		}
 		
+		/**
+		Used to add a byte to the buffer, if buffer is full, then the buffer
+		is reset and the callback function is called.
+		@param b byte to add to the buffer
+		**/
 		void add(byte b) {
+			// If the buffer still has room for another byte
 			if (this.itemCount < this.size) {
+				// Incrementing itemCount and adding byte to array
 				this.buffer[itemCount++] = b;
 			} else {
-				this.listener.onFull(this.buffer.clone());
-				this.reset();
-				this.buffer[itemCount++] = b;
+				// Otherwise the buffer is full
+				// Passing array of bytes to the callback function
+				this.listener.onFull(this.buffer);
+				this.reset(); // Clear array
+				this.buffer[itemCount++] = b; // Add byte to cleared array
 			}
 		}
 		
+		/**
+		Resets and emptys buffer 
+		**/
 		void reset() {
 			this.buffer = new byte[size];
 			this.itemCount = 0;
 		}
 		
+		/**
+		Used to drain the remaining bytes from the buffer, as
+		the buffer is not always going to be completely full when the note
+		ends, so the onFull callback will not be called and the buffer
+		will be partially full
+		**/
 		void drain() {
-			this.listener.onDrain(this.buffer.clone());
+			this.listener.onDrain(this.buffer);
 		}
 				
 	}
 	
+	// OnBufferFullListener used for callback functions
 	public interface OnBufferFullListener {
-		void onFull(byte[] buffer);
-		void onDrain(byte[] buffer);
+		void onFull(byte[] buffer); // Called when the buffer is full
+		void onDrain(byte[] buffer); // Called when the buffer is partially full
+		// and needs to be emptied and written to line
 	}
 	
 }
